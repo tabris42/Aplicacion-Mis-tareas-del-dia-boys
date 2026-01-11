@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus & Create ✨</title>
+
+  <!--
+  ============================================================
+  Focus & Create ✨ (versión comentada)
+  ------------------------------------------------------------
+  ✅ Checklist con:
+    - Barra de progreso
+    - Mensajes flotantes (toast) al marcar/desmarcar
+    - Layout 3 columnas (izquierda / app / derecha) en escritorio
+    - Mensaje motivacional del día + mascota (avatar motivador)
+    - Rutina del día (timeline)
+    - Rachas (streak) y mejor racha (persisten con localStorage)
+    - Logros (achievements) desbloqueables (persisten con localStorage)
+    - “Hoy toca…” (sugerencias según progreso)
+    - Bitácora (en la app) + Notas rápidas (panel derecho)
+    - Descargar notas a TXT
+    - Agendar en Google Calendar (abre plantilla prellenada)
+  ------------------------------------------------------------
+  ✅ Cómo usar:
+    1) Guarda este contenido como: index.html
+    2) Ábrelo con doble clic o con Live Server (VS Code)
+  ============================================================
+  -->
+
+  <!-- Fuentes (Google Fonts) -->
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       VARIABLES DE COLOR (tema coquette)
+       ============================================================ */
+    :root{
+      --pink-bg:#fff0f3;
+      --pink-soft:#ffcad4;
+      --pink-dark:#f19eb0;
+      --lila:#f1e4ff;
+      --celeste:#e0f2fe;
+      --menta:#e6fffa;
+      --text:#7d5a5a;
+      --card:#ffffff;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      font-family:'Quicksand',sans-serif;
+      background:var(--pink-bg);
+      color:var(--text);
+      margin:0;
+      padding:20px;
+    }
+
+    /* ============================================================
+       LAYOUT PRINCIPAL
+       - Mobile: 1 columna
+       - Desktop: 3 columnas (side-left / app / side-right)
+       ============================================================ */
+    .page{
+      max-width: 1280px;
+      margin: 0 auto;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items:start;
+    }
+
+    @media (min-width: 1100px){
+      .page{
+        grid-template-columns: 320px 480px 320px;
+        justify-content:center;
+        gap: 18px;
+      }
+    }
+
+    /* ============================================================
+       TARJETAS LATERALES (SIDE PANELS)
+       ============================================================ */
+    .side{
+      background: rgba(255,255,255,0.85);
+      border: 1px solid var(--pink-soft);
+      border-radius: 26px;
+      padding: 16px;
+      box-shadow: 0 12px 25px rgba(241,158,176,0.16);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .side h3{
+      margin: 0 0 10px;
+      font-size: 1rem;
+      color: var(--pink-dark);
+      display:flex;
+      align-items:center;
+      gap: 8px;
+    }
+
+    .side p{
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      opacity: 0.95;
+    }
+
+    .side .mini{
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-top: 8px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 12px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid #ffd8e1;
+      margin: 6px 6px 0 0;
+      font-weight: 700;
+      font-size: 0.85rem;
+      box-shadow: 0 6px 14px rgba(241,158,176,0.10);
+    }
+
+    .hr{
+      height:1px;
+      background: rgba(241,158,176,0.22);
+      border:none;
+      margin: 14px 0;
+    }
+
+    /* Sticky en desktop para que el panel “acompañe” al hacer scroll */
+    @media (min-width:1100px){
+      .side.sticky{ position: sticky; top: 18px; }
+    }
+
+    /* ============================================================
+       APP CENTRAL
+       ============================================================ */
+    .app{
+      background: var(--card);
+      border-radius: 40px;
+      padding: 25px;
+      border: 3px solid white;
+      box-shadow: 0 15px 30px rgba(241,158,176,0.2);
+      position: relative;
+    }
+
+    h1{
+      font-family:'Dancing Script',cursive;
+      font-size: 2.8rem;
+      text-align:center;
+      margin: 6px 0 4px;
+      color: var(--pink-dark);
+      text-shadow: 1px 1px 0px #fff;
+    }
+    .subtitle{
+      text-align:center;
+      margin: 0 0 14px;
+      opacity: 0.9;
+      font-size: 0.95rem;
+    }
+
+    /* Barra de progreso */
+    .progress-box{
+      background: #fdf2f4;
+      border-radius: 20px;
+      height: 15px;
+      margin: 18px 0 10px;
+      padding: 3px;
+      border: 1px solid var(--pink-soft);
+    }
+    #progress-bar{
+      background: linear-gradient(90deg, #ffcad4, #f19eb0);
+      width:0%;
+      height:100%;
+      border-radius: 15px;
+      transition: width 0.35s ease;
+      box-shadow: 0 2px 5px rgba(241,158,176,0.3);
+    }
+    .progress-text{
+      text-align:center;
+      font-size: 0.9rem;
+      margin: 0 0 8px;
+      opacity: 0.9;
+    }
+
+    /* Etiquetas de categoría */
+    .category-label{
+      display:inline-block;
+      padding: 6px 15px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 18px 0 10px 5px;
+      color:white;
+    }
+    .bg-pink{background:#f19eb0;}
+    .bg-celeste{background:#7aaed6;}
+    .bg-lila{background:#bfa2db;}
+    .bg-menta{background:#81c784;}
+
+    /* Tarjetas de tarea */
+    .task-card{
+      display:flex;
+      align-items:center;
+      padding: 15px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      cursor:pointer;
+      transition: 0.25s;
+      position:relative;
+      user-select:none;
+    }
+    .task-card:hover{transform:scale(1.012);}
+    .task-card.rosa{background:#fff5f6;}
+    .task-card.celeste{background:#f0f9ff;}
+    .task-card.lila{background:#f8f1ff;}
+    .task-card.menta{background:#f0fff4;}
+
+    /* Checkbox con corazón */
+    input[type="checkbox"]{
+      appearance:none;
+      width:25px;height:25px;
+      border:2px solid var(--pink-soft);
+      border-radius:8px;
+      margin-right:15px;
+      background:#fff;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+    }
+    input[type="checkbox"]:checked{ background: var(--pink-soft); }
+    input[type="checkbox"]:checked::after{
+      content:'❤';
+      color:#fff;
+      font-size: 14px;
+    }
+    input[type="checkbox"]:checked + span{
+      text-decoration: line-through;
+      color:#d1d1d1;
+    }
+    .task-text{
+      font-size: 1rem;
+      font-weight: 600;
+      padding-right: 32px;
+    }
+    .heart-icon{
+      position:absolute;
+      right:15px;
+      font-size: 1.15rem;
+      color:#ffcad4;
+    }
+
+    /* Bitácora (dentro de la app) */
+    .note-section{
+      background:#fff9f0;
+      border:2px dashed #f19eb0;
+      border-radius: 20px;
+      padding: 15px;
+      margin-top: 22px;
+    }
+    .note-section strong{
+      display:block;
+      margin-bottom: 8px;
+      color: var(--pink-dark);
+    }
+
+    textarea{
+      width:100%;
+      border:none;
+      background:transparent;
+      font-family:'Quicksand',sans-serif;
+      font-size: 0.95rem;
+      resize:none;
+      outline:none;
+      color:#8a7a7a;
+    }
+
+    /* Botones */
+    .btn-row{
+      display:flex;
+      gap:10px;
+      margin-top: 18px;
+    }
+    .btn{
+      flex:1;
+      padding: 14px;
+      border:none;
+      border-radius: 25px;
+      font-family:'Quicksand',sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor:pointer;
+      transition: 0.25s;
+    }
+    .btn-finish{
+      background: linear-gradient(135deg,#ffcad4,#f19eb0);
+      color:#fff;
+      box-shadow: 0 5px 15px rgba(241,158,176,0.35);
+    }
+    .btn-reset{
+      background:#fff;
+      border: 2px solid var(--pink-soft);
+      color: var(--text);
+    }
+    .btn:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(241,158,176,0.55);
+    }
+
+    /* ============================================================
+       TOAST (mensaje flotante)
+       ============================================================ */
+    .toast{
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      width: min(380px, calc(100% - 44px));
+      background: rgba(255,255,255,0.96);
+      border: 1px solid var(--pink-soft);
+      box-shadow: 0 14px 30px rgba(241,158,176,0.25);
+      border-radius: 22px;
+      padding: 14px;
+      display:none;
+      z-index:9999;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transform: translateY(10px);
+      opacity: 0;
+      transition: 0.25s ease;
+    }
+    .toast.show{
+      display:block;
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .toast-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom: 4px;
+    }
+    .toast-title{
+      font-weight: 800;
+      color: var(--pink-dark);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .toast-close{
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      font-size: 16px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      color:#a98a8a;
+    }
+    .toast-close:hover{ background:#fff3f6; }
+    .toast-body{ font-size: 0.95rem; }
+
+    /* ============================================================
+       NOTAS (panel derecho)
+       ============================================================ */
+    .note-box{
+      background: #fff;
+      border: 1px dashed #f19eb0;
+      border-radius: 18px;
+      padding: 12px;
+    }
+    .note-box textarea{
+      min-height: 140px;
+      font-size: 0.95rem;
+    }
+    .mini-btn{
+      width: 100%;
+      margin-top: 10px;
+      padding: 11px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--pink-soft);
+      background: #fff;
+      cursor:pointer;
+      font-weight: 800;
+      color: var(--text);
+      transition: 0.2s;
+    }
+    .mini-btn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(241,158,176,0.20);
+    }
+
+    /* Logros */
+    .ach-list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top: 8px;
+    }
+    .ach{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background:#fff;
+      border:1px solid #ffe0e7;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+    .ach.locked{
+      opacity: 0.55;
+      filter: grayscale(0.2);
+    }
+    .ach small{
+      display:block;
+      font-weight: 600;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    /* Timeline */
+    .timeline{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .trow{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding: 10px 12px;
+      border-radius: 18px;
+      background:#fff;
+      border:1px solid #ffe0e7;
+    }
+    .ticon{ font-size: 1.2rem; }
+    .trow b{ display:block; margin-bottom: 2px; }
+    .muted{ opacity: 0.85; font-weight: 600; }
+
+    /* Mascota / avatar */
+    .pet{
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      padding: 12px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #fff, #fff4f7);
+      border: 1px solid #ffd8e1;
+      box-shadow: 0 10px 20px rgba(241,158,176,0.12);
+      margin-top: 10px;
+    }
+    .pet .face{
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#fff;
+      border: 1px solid #ffd8e1;
+      font-size: 1.4rem;
+    }
+    .pet .say{
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .pet .say span{
+      display:block;
+      font-weight: 600;
+      opacity: 0.9;
+      margin-top: 4px;
+      font-size: 0.9rem;
+    }
+
+    /* Inputs del bloque Google Calendar */
+    .gcal-input{
+      width:100%;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid #ffd8e1;
+      outline:none;
+      font-family:inherit;
+      margin-bottom:10px;
+      background:#fff;
+      color: var(--text);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- ============================================================
+         COLUMNA IZQUIERDA
+         - Mensaje del día
+         - Mascota motivadora
+         - Rutina del día (timeline)
+         ============================================================ -->
+    <aside class="side sticky" id="leftSide">
+      <h3>🌸 Mensaje del día</h3>
+      <p id="dailyQuote">✨</p>
+      <p class="mini" id="quoteHint">Tip: marca una tarea para ver un mensaje bonito 💕</p>
+
+      <div class="pet" style="margin-top:14px;">
+        <div class="face" id="petFace">🐰</div>
+        <div class="say" id="petSay">
+          ¡Hola!
+          <span>Estoy aquí para animarte ✨</span>
+        </div>
+      </div>
+
+      <hr class="hr" />
+
+      <h3>⏰ Rutina del día</h3>
+      <div class="timeline">
+        <div class="trow">
+          <div class="ticon">🌞</div>
+          <div>
+            <b>Mañana</b>
+            <div class="muted">Esenciales (ventilar, cama, higiene)</div>
+          </div>
+        </div>
+        <div class="trow">
+          <div class="ticon">📚</div>
+          <div>
+            <b>Tarde</b>
+            <div class="muted">Colegio (tareas, repaso, lectura)</div>
+          </div>
+        </div>
+        <div class="trow">
+          <div class="ticon">🎨</div>
+          <div>
+            <b>Tarde libre</b>
+            <div class="muted">Talentos (música, manualidad, dibujo)</div>
+          </div>
+        </div>
+        <div class="trow">
+          <div class="ticon">🌙</div>
+          <div>
+            <b>Noche</b>
+            <div class="muted">Ayuda en casa + dejar listo mañana</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============================================================
+         APP CENTRAL (Checklist)
+         ============================================================ -->
+    <main class="app">
+      <h1>Mis tareas del día ✨</h1>
+<p class="subtitle">Mis tareas, mis logros y mis momentos 💖</p>
+
+
+      <div class="progress-box"><div id="progress-bar"></div></div>
+      <div class="progress-text" id="progress-text">0 de 0 completadas</div>
+
+      <!-- ESENCIALES -->
+      <div class="category-label bg-pink">📍 Esenciales</div>
+
+      <label class="task-card rosa">
+        <input type="checkbox" class="task-check" data-cat="esenciales">
+        <span class="task-text">Abrir cortinas y ventilar 10 min</span>
+        <span class="heart-icon">🌬</span>
+      </label>
+
+      <label class="task-card rosa">
+        <input type="checkbox" class="task-check" data-cat="esenciales">
+        <span class="task-text">Hacer la cama y ordenar cojines</span>
+        <span class="heart-icon">🛏</span>
+      </label>
+
+      <label class="task-card rosa">
+        <input type="checkbox" class="task-check" data-cat="esenciales">
+        <span class="task-text">Llevar ropa sucia al cesto</span>
+        <span class="heart-icon">🧺</span>
+      </label>
+
+      <label class="task-card rosa">
+        <input type="checkbox" class="task-check" data-cat="esenciales">
+        <span class="task-text">Ordenar escritorio / mesa de estudio</span>
+        <span class="heart-icon">🧸</span>
+      </label>
+
+      <label class="task-card rosa">
+        <input type="checkbox" class="task-check" data-cat="esenciales">
+        <span class="task-text">Cepillar dientes (mañana y noche)</span>
+        <span class="heart-icon">🪥</span>
+      </label>
+
+      <label class="task-card rosa">
+        <input type="checkbox" class="task-check" data-cat="esenciales">
+        <span class="task-text">Dejar lista la ropa para mañana</span>
+        <span class="heart-icon">👗</span>
+      </label>
+
+      <!-- COLEGIO -->
+      <div class="category-label bg-celeste">📚 Colegio</div>
+
+      <label class="task-card celeste">
+        <input type="checkbox" class="task-check" data-cat="colegio">
+        <span class="task-text">Revisar agenda / tareas del día</span>
+        <span class="heart-icon">🗓</span>
+      </label>
+
+      <label class="task-card celeste">
+        <input type="checkbox" class="task-check" data-cat="colegio">
+        <span class="task-text">Hacer tareas (y guardar cuadernos)</span>
+        <span class="heart-icon">✍️</span>
+      </label>
+
+      <label class="task-card celeste">
+        <input type="checkbox" class="task-check" data-cat="colegio">
+        <span class="task-text">Estudiar o repasar 15–30 minutos</span>
+        <span class="heart-icon">🧠</span>
+      </label>
+
+      <label class="task-card celeste">
+        <input type="checkbox" class="task-check" data-cat="colegio">
+        <span class="task-text">Lectura 15 minutos</span>
+        <span class="heart-icon">📖</span>
+      </label>
+
+      <label class="task-card celeste">
+        <input type="checkbox" class="task-check" data-cat="colegio">
+        <span class="task-text">Preparar mochila y materiales</span>
+        <span class="heart-icon">🎒</span>
+      </label>
+
+      <!-- TALENTOS -->
+      <div class="category-label bg-lila">🎨 Proyectos & Talentos</div>
+
+      <label class="task-card lila">
+        <input type="checkbox" class="task-check" data-cat="talentos">
+        <span class="task-text">Música (Piano / Guitarra) 10–20 min</span>
+        <span class="heart-icon">🎹</span>
+      </label>
+
+      <label class="task-card lila">
+        <input type="checkbox" class="task-check" data-cat="talentos">
+        <span class="task-text">Manualidad (Tejido / Hama) 15 min</span>
+        <span class="heart-icon">🧶</span>
+      </label>
+
+      <label class="task-card lila">
+        <input type="checkbox" class="task-check" data-cat="talentos">
+        <span class="task-text">Dibujo / creatividad 15 min</span>
+        <span class="heart-icon">🎀</span>
+      </label>
+
+      <label class="task-card lila">
+        <input type="checkbox" class="task-check" data-cat="talentos">
+        <span class="task-text">Ordenar materiales al terminar</span>
+        <span class="heart-icon">🧴</span>
+      </label>
+
+      <!-- AYUDA EN CASA -->
+      <div class="category-label bg-menta">🏠 Ayuda en Casa</div>
+
+      <label class="task-card menta">
+        <input type="checkbox" class="task-check" data-cat="casa">
+        <span class="task-text">Poner la mesa / retirar la mesa</span>
+        <span class="heart-icon">🍽</span>
+      </label>
+
+      <label class="task-card menta">
+        <input type="checkbox" class="task-check" data-cat="casa">
+        <span class="task-text">Enjuagar o secar loza (con ayuda)</span>
+        <span class="heart-icon">🫧</span>
+      </label>
+
+      <label class="task-card menta">
+        <input type="checkbox" class="task-check" data-cat="casa">
+        <span class="task-text">Ordenar sala (cojines, juguetes, controles)</span>
+        <span class="heart-icon">🧸</span>
+      </label>
+
+      <label class="task-card menta">
+        <input type="checkbox" class="task-check" data-cat="casa">
+        <span class="task-text">Ayudar con ropa limpia (doblar 5 prendas)</span>
+        <span class="heart-icon">👕</span>
+      </label>
+
+      <label class="task-card menta">
+        <input type="checkbox" class="task-check" data-cat="casa">
+        <span class="task-text">Mascota o plantas (agua / comida / riego)</span>
+        <span class="heart-icon">🐾</span>
+      </label>
+
+      <!-- BITÁCORA -->
+      <div class="note-section">
+        <strong>📓 Bitácora de hoy:</strong>
+        <textarea id="daily-notes" rows="3" placeholder="¿Qué hiciste hoy? ¿Qué te salió bonito? ✨"></textarea>
+      </div>
+
+      <!-- Botones -->
+      <div class="btn-row">
+        <button class="btn btn-reset" onclick="resetApp(false)">Vaciar ✔</button>
+        <button class="btn btn-finish" onclick="resetApp(true)">Finalizar Día 🌙</button>
+      </div>
+    </main>
+
+    <!-- ============================================================
+         COLUMNA DERECHA
+         - Rachas + “Hoy toca…”
+         - Logros
+         - Notas rápidas + Descargar
+         - Bloque Google Calendar (agendar)
+         ============================================================ -->
+    <aside class="side sticky" id="rightSide">
+      <h3>🔥 Rachas</h3>
+      <div>
+        <div class="pill">🔥 Racha: <span id="streakNow">0</span></div>
+        <div class="pill">⭐ Mejor: <span id="streakBest">0</span></div>
+      </div>
+      <p class="mini" id="streakHint">Completa el 100% del día para sumar racha ✨</p>
+
+      <hr class="hr" />
+
+      <h3>🧠 Hoy toca…</h3>
+      <p id="todayFocus">Marca una tarea para que te sugiera el siguiente paso 💕</p>
+
+      <hr class="hr" />
+
+      <h3>🏅 Logros</h3>
+      <div class="ach-list">
+        <div class="ach locked" id="ach_first">
+          🎀 <div><div>Primer check</div><small>Marca 1 tarea</small></div>
+        </div>
+        <div class="ach locked" id="ach_half">
+          🌸 <div><div>Mitad del día</div><small>Llega al 50%</small></div>
+        </div>
+        <div class="ach locked" id="ach_full">
+          💖 <div><div>Día completo</div><small>Completa 100%</small></div>
+        </div>
+        <div class="ach locked" id="ach_streak3">
+          🔥 <div><div>Racha x3</div><small>3 días seguidos</small></div>
+        </div>
+        <div class="ach locked" id="ach_week">
+          🌈 <div><div>Semana ordenada</div><small>Racha 7 días</small></div>
+        </div>
+      </div>
+
+      <hr class="hr" />
+
+      <h3>📝 Notas rápidas</h3>
+      <div class="note-box">
+        <textarea id="side-notes" placeholder="Apunta algo rápido… (se guarda solo) ✨"></textarea>
+        <button class="mini-btn" id="downloadNotesBtn">⬇️ Descargar notas</button>
+      </div>
+
+      <hr class="hr" />
+
+      <!-- ============================================================
+           GOOGLE CALENDAR (Opción B)
+           - Crea un link prellenado a Google Calendar.
+           - No crea eventos directo (eso requiere OAuth / API).
+           ============================================================ -->
+      <h3>📅 Agendar en Google Calendar</h3>
+
+      <div class="note-box">
+        <label class="mini muted" style="display:block;margin-bottom:6px;">Título</label>
+        <input id="calTitle" class="gcal-input" type="text" placeholder="Ej: Control de Matemática">
+
+        <label class="mini muted" style="display:block;margin-bottom:6px;">Fecha</label>
+        <input id="calDate" class="gcal-input" type="date">
+
+        <label class="mini muted" style="display:block;margin-bottom:6px;">Hora</label>
+        <input id="calTime" class="gcal-input" type="time" value="18:00">
+
+        <label class="mini muted" style="display:block;margin-bottom:6px;">Duración (min)</label>
+        <input id="calDur" class="gcal-input" type="number" min="5" step="5" value="60">
+
+        <button class="mini-btn" id="addToGCalBtn">➕ Agregar a Google Calendar</button>
+        <button class="mini-btn" id="openGCalBtn" style="margin-top:8px;">🗓️ Abrir Google Calendar</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ============================================================
+       TOAST (mensaje flotante)
+       ============================================================ -->
+  <div class="toast" id="toast">
+    <div class="toast-header">
+      <div class="toast-title" id="toast-title">✨ Mensaje</div>
+      <button class="toast-close" id="toast-close" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="toast-body" id="toast-body">¡Muy bien!</div>
+  </div>
+
+  <script>
+    /* ============================================================
+       UTILIDADES (helpers)
+       ============================================================ */
+    const qs = (s) => document.querySelector(s);
+    const qsa = (s) => Array.from(document.querySelectorAll(s));
+
+    // Fecha de hoy en formato YYYY-MM-DD (útil para rachas y nombres de archivos)
+    const todayKey = () => new Date().toISOString().slice(0,10);
+
+    // Fecha de ayer en formato YYYY-MM-DD
+    function yesterdayKey(){
+      const d = new Date();
+      d.setDate(d.getDate()-1);
+      return d.toISOString().slice(0,10);
+    }
+
+    function rand(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
+    /* ============================================================
+       ELEMENTOS DEL DOM
+       ============================================================ */
+    const checks = qsa('.task-check');
+    const bar = qs('#progress-bar');
+    const progressText = qs('#progress-text');
+    const dailyNotes = qs('#daily-notes');
+
+    // Toast
+    const toast = qs('#toast');
+    const toastTitle = qs('#toast-title');
+    const toastBody = qs('#toast-body');
+    const toastClose = qs('#toast-close');
+    let toastTimer = null;
+
+    // Panel izquierdo
+    const dailyQuoteEl = qs('#dailyQuote');
+    const quoteHint = qs('#quoteHint');
+    const petFace = qs('#petFace');
+    const petSay = qs('#petSay');
+
+    // Panel derecho
+    const streakNowEl = qs('#streakNow');
+    const streakBestEl = qs('#streakBest');
+    const streakHint = qs('#streakHint');
+    const todayFocusEl = qs('#todayFocus');
+
+    // Logros
+    const achEls = {
+      first: qs('#ach_first'),
+      half: qs('#ach_half'),
+      full: qs('#ach_full'),
+      streak3: qs('#ach_streak3'),
+      week: qs('#ach_week'),
+    };
+
+    // Notas laterales
+    const sideNotes = qs('#side-notes');
+    const downloadNotesBtn = qs('#downloadNotesBtn');
+
+    /* ============================================================
+       MENSAJES / FRASES
+       ============================================================ */
+    const dailyQuotes = [
+      "✨ Un pequeño hábito hoy, una gran persona mañana.",
+      "💕 No tiene que ser perfecto, solo hecho.",
+      "🌸 Tu esfuerzo importa, incluso en lo pequeño.",
+      "⭐ Cada check es un pasito más.",
+      "🧠 Orden afuera, calma adentro.",
+      "🎀 Lo estás haciendo mejor de lo que crees.",
+      "🌷 Pasito a pasito, sin apuro.",
+      "💖 Tu constancia vale oro."
+    ];
+
+    const messagesDone = [
+      "¡Súper! Un check más y vas genial 💖",
+      "Pequeño paso, gran avance ✨",
+      "¡Lo lograste! Estoy orgulloso/a de ti 🌸",
+      "Tu esfuerzo cuenta, aunque sea poquito 💕",
+      "¡Wow! Esa tarea ya quedó lista 🎀",
+      "¡Vamos! Cada check es una victoria ⭐",
+      "Orden afuera, calma adentro 🌷",
+      "¡Bien hecho! Te estás cuidando 💗"
+    ];
+
+    const messagesUndo = [
+      "No pasa nada 😊 Lo intentas de nuevo cuando quieras.",
+      "Respira 💕 A veces uno se devuelve y está bien.",
+      "Tranquila/o ✨ Lo importante es seguir.",
+      "Todo bien 🌸 Puedes hacerlo a tu ritmo."
+    ];
+
+    const petFaces = ["🐰","🐱","🧸","🐶"];
+
+    /* ============================================================
+       LOCALSTORAGE (persistencia)
+       - Guarda datos aunque cierres el navegador.
+       ============================================================ */
+    const LS = {
+      streakNow: "coquette_streak_now",
+      streakBest: "coquette_streak_best",
+      lastFullDay: "coquette_last_full_day",
+      achievements: "coquette_achievements",
+      sideNotes: "coquette_side_notes",
+      dailyNotes: "coquette_daily_notes",
+      lastQuoteDay: "coquette_last_quote_day",
+      quoteIndex: "coquette_quote_index"
+    };
+
+    function loadNum(key, def=0){
+      const v = localStorage.getItem(key);
+      const n = v === null ? def : Number(v);
+      return Number.isFinite(n) ? n : def;
+    }
+    function saveNum(key, n){ localStorage.setItem(key, String(n)); }
+
+    function loadJSON(key, def){
+      try{
+        const v = localStorage.getItem(key);
+        if(!v) return def;
+        return JSON.parse(v);
+      }catch{
+        return def;
+      }
+    }
+    function saveJSON(key, obj){
+      localStorage.setItem(key, JSON.stringify(obj));
+    }
+
+    /* ============================================================
+       LOGROS (achievements) - estado + render
+       ============================================================ */
+    const achState = loadJSON(LS.achievements, {
+      first:false, half:false, full:false, streak3:false, week:false
+    });
+
+    function renderAchievements(){
+      Object.entries(achState).forEach(([k, unlocked]) => {
+        const el = achEls[k];
+        if(!el) return;
+        el.classList.toggle('locked', !unlocked);
+      });
+    }
+
+    function unlockAchievement(key, title, msg){
+      if(achState[key]) return;
+      achState[key] = true;
+      saveJSON(LS.achievements, achState);
+      renderAchievements();
+      showToast(`🏅 Logro: ${title}`, msg);
+    }
+
+    /* ============================================================
+       MENSAJE DEL DÍA (cambia 1 vez al día)
+       ============================================================ */
+    function setDailyQuote(){
+      const t = todayKey();
+      const last = localStorage.getItem(LS.lastQuoteDay);
+      let idx = loadNum(LS.quoteIndex, 0);
+
+      if(last !== t){
+        idx = Math.floor(Math.random() * dailyQuotes.length);
+        localStorage.setItem(LS.lastQuoteDay, t);
+        saveNum(LS.quoteIndex, idx);
+      }
+      dailyQuoteEl.textContent = dailyQuotes[idx];
+    }
+
+    /* ============================================================
+       TOAST (mensaje flotante)
+       ============================================================ */
+    function showToast(title, message){
+      toastTitle.textContent = title;
+      toastBody.textContent = message;
+
+      if(toastTimer) clearTimeout(toastTimer);
+      toast.classList.add('show');
+
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2600);
+    }
+
+    toastClose.addEventListener('click', () => {
+      toast.classList.remove('show');
+      if(toastTimer) clearTimeout(toastTimer);
+    });
+
+    /* ============================================================
+       PROGRESO (barra + texto) + sugerencias
+       ============================================================ */
+    function getProgress(){
+      const total = checks.length;
+      const completed = qsa('.task-check:checked').length;
+      const percentage = total === 0 ? 0 : (completed / total) * 100;
+      return { total, completed, percentage };
+    }
+
+    function updatePetAndFocus(completed, total, percentage){
+      // Mascota: cambia frase según avance
+      if(percentage === 0){
+        petFace.textContent = rand(petFaces);
+        petSay.innerHTML = `¡Hola! <span>Un check pequeñito y ya empiezas ✨</span>`;
+      } else if(percentage < 40){
+        petSay.innerHTML = `¡Vamos! <span>Ya te estás moviendo 💕</span>`;
+      } else if(percentage < 80){
+        petSay.innerHTML = `¡Qué bien! <span>Estás en ritmo 🌷</span>`;
+      } else if(percentage < 100){
+        petSay.innerHTML = `¡Casi! <span>Te falta poquito ⭐</span>`;
+      } else {
+        petSay.innerHTML = `¡Lo lograste! <span>Día completito 💖</span>`;
+      }
+
+      // Hoy toca… (texto sugerido)
+      if(percentage === 0){
+        todayFocusEl.textContent = "Empieza con algo fácil: ventilar, cama o dientes. Un check y listo 💕";
+        return;
+      }
+      if(percentage < 40){
+        todayFocusEl.textContent = "💡 Prioriza Esenciales + 1 tarea de Colegio. Después te premias con Talentos 🎀";
+        return;
+      }
+      if(percentage < 80){
+        todayFocusEl.textContent = "✨ Buen momento para terminar Colegio. Luego Talentos o Ayuda en Casa 🌸";
+        return;
+      }
+      if(percentage < 100){
+        todayFocusEl.textContent = "⭐ Cierre perfecto: prepara mochila/ropa y una ayuda chiquitita en casa 🌙";
+        return;
+      }
+      todayFocusEl.textContent = "💖 Día completo. Escribe algo lindo en la bitácora y descansa 🌙";
+    }
+
+    function updateProgressUI(){
+      const { total, completed, percentage } = getProgress();
+      bar.style.width = percentage + '%';
+      progressText.textContent = `${completed} de ${total} completadas`;
+
+      // Actualiza mascota y sugerencia
+      updatePetAndFocus(completed, total, percentage);
+
+      // Logros por progreso
+      if(completed >= 1) unlockAchievement("first", "Primer check", "¡Empezar es lo más importante! 🎀");
+      if(percentage >= 50) unlockAchievement("half", "Mitad del día", "¡Vas por la mitad! 🌸");
+    }
+
+    /* ============================================================
+       RACHAS (streak)
+       - Solo suma racha si llegas a 100% por primera vez en el día.
+       ============================================================ */
+    function renderStreak(){
+      streakNowEl.textContent = loadNum(LS.streakNow, 0);
+      streakBestEl.textContent = loadNum(LS.streakBest, 0);
+    }
+
+    function updateStreakIfFullDay(){
+      const { percentage } = getProgress();
+      if(percentage < 100) return false;
+
+      const today = todayKey();
+      const lastFull = localStorage.getItem(LS.lastFullDay);
+
+      // Evita contar el mismo día dos veces
+      if(lastFull === today) return false;
+
+      const y = yesterdayKey();
+      let streak = loadNum(LS.streakNow, 0);
+
+      // Si ayer también fue 100%, aumenta; si no, empieza en 1
+      if(lastFull === y){
+        streak += 1;
+      } else {
+        streak = 1;
+      }
+
+      let best = loadNum(LS.streakBest, 0);
+      best = Math.max(best, streak);
+
+      localStorage.setItem(LS.lastFullDay, today);
+      saveNum(LS.streakNow, streak);
+      saveNum(LS.streakBest, best);
+
+      // UI
+      streakNowEl.textContent = streak;
+      streakBestEl.textContent = best;
+
+      // Logros
+      unlockAchievement("full", "Día completo", "¡Completaste el 100%! 💖");
+      if(streak >= 3) unlockAchievement("streak3", "Racha x3", "¡3 días seguidos! 🔥");
+      if(streak >= 7) unlockAchievement("week", "Semana ordenada", "¡Una semana completa! 🌈");
+
+      showToast("🔥 Racha actualizada", `¡Sumaste un día! Racha: ${streak} (Mejor: ${best})`);
+      streakHint.textContent = "¡Genial! Tu racha se guarda automáticamente ✨";
+      return true;
+    }
+
+    /* ============================================================
+       NOTAS (guardado automático + descarga)
+       ============================================================ */
+    function loadNotes(){
+      sideNotes.value = localStorage.getItem(LS.sideNotes) || "";
+      dailyNotes.value = localStorage.getItem(LS.dailyNotes) || "";
+    }
+
+    sideNotes.addEventListener('input', () => {
+      localStorage.setItem(LS.sideNotes, sideNotes.value);
+    });
+
+    dailyNotes.addEventListener('input', () => {
+      localStorage.setItem(LS.dailyNotes, dailyNotes.value);
+    });
+
+    downloadNotesBtn.addEventListener('click', () => {
+      const date = new Date();
+      const stamp = date.toLocaleString('es-CL');
+      const txt =
+`Focus & Create ✨
+Fecha: ${stamp}
+
+NOTAS RÁPIDAS:
+${sideNotes.value || "(vacío)"}
+
+BITÁCORA:
+${dailyNotes.value || "(vacío)"}
+`;
+
+      const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `notas_focus_create_${todayKey()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      showToast("⬇️ Notas descargadas", "¡Listo! Se guardó tu archivo .txt 💕");
+    });
+
+    /* ============================================================
+       RESET (vaciar checklist + bitácora)
+       ============================================================ */
+    function resetApp(withMessage){
+      const msg = withMessage
+        ? "¿Terminaste tu día? ¡Mañana será un nuevo día brillante! ✨"
+        : "¿Seguro que quieres vaciar el checklist?";
+
+      if(confirm(msg)){
+        checks.forEach(c => c.checked = false);
+
+        // Limpia bitácora (y storage asociado)
+        dailyNotes.value = '';
+        localStorage.setItem(LS.dailyNotes, '');
+
+        updateProgressUI();
+        window.scrollTo({top:0,behavior:'smooth'});
+
+        if(withMessage){
+          alert("¡Guardado! Eres increíble. 💕");
+        }
+        showToast("🧼 Checklist reiniciado", "Puedes empezar de nuevo cuando quieras ✨");
+      }
+    }
+    window.resetApp = resetApp;
+
+    /* ============================================================
+       GOOGLE CALENDAR (link prellenado)
+       - Abre una plantilla de evento en Google Calendar.
+       ============================================================ */
+    const calTitle = document.getElementById('calTitle');
+    const calDate = document.getElementById('calDate');
+    const calTime = document.getElementById('calTime');
+    const calDur  = document.getElementById('calDur');
+
+    const addToGCalBtn = document.getElementById('addToGCalBtn');
+    const openGCalBtn = document.getElementById('openGCalBtn');
+
+    // Pone hoy por defecto si está vacío
+    if (calDate && !calDate.value) {
+      calDate.value = new Date().toISOString().slice(0,10);
+    }
+
+    function toGCalDateTime(dateStr, timeStr) {
+      // Construye YYYYMMDDTHHMM00 (Google asumirá tu zona horaria al guardar)
+      const [y,m,d] = dateStr.split('-');
+      const [hh,mm] = timeStr.split(':');
+      return `${y}${m}${d}T${hh}${mm}00`;
+    }
+
+    function addMinutes(dateObj, minutes) {
+      return new Date(dateObj.getTime() + minutes * 60000);
+    }
+
+    addToGCalBtn?.addEventListener('click', () => {
+      const title = (calTitle.value || "").trim();
+      const date = calDate.value;
+      const time = calTime.value;
+      const dur = parseInt(calDur.value, 10) || 60;
+
+      if (!title) {
+        showToast("📅 Falta el título", "Escribe un nombre para el evento 💕");
+        return;
+      }
+      if (!date || !time) {
+        showToast("📅 Falta fecha/hora", "Selecciona fecha y hora ✨");
+        return;
+      }
+
+      // Start
+      const startStr = toGCalDateTime(date, time);
+
+      // End (sumando duración)
+      const startDateObj = new Date(`${date}T${time}:00`);
+      const endDateObj = addMinutes(startDateObj, dur);
+      const endDate = endDateObj.toISOString().slice(0,10);
+      const endTime = endDateObj.toTimeString().slice(0,5);
+      const endStr = toGCalDateTime(endDate, endTime);
+
+      // URL de Google Calendar "event template"
+      const url = new URL("https://calendar.google.com/calendar/render");
+      url.searchParams.set("action", "TEMPLATE");
+      url.searchParams.set("text", title);
+      url.searchParams.set("dates", `${startStr}/${endStr}`);
+      url.searchParams.set("details", "Creado desde Focus & Create ✨");
+
+      window.open(url.toString(), "_blank");
+      showToast("📅 Listo", "Se abrió Google Calendar para guardar el evento 💖");
+    });
+
+    openGCalBtn?.addEventListener('click', () => {
+      window.open("https://calendar.google.com/calendar/u/0/r", "_blank");
+    });
+
+    /* ============================================================
+       EVENTOS DE CHECKBOX
+       - Actualiza progreso
+       - Muestra toast
+       - Si llega a 100%, actualiza racha
+       ============================================================ */
+    checks.forEach(check => {
+      check.addEventListener('change', () => {
+        updateProgressUI();
+
+        if(check.checked){
+          showToast("✨ ¡Tarea completada!", rand(messagesDone));
+
+          // Bonus: al completar, también “mueve” el mensaje del día
+          dailyQuoteEl.textContent = rand(dailyQuotes);
+          quoteHint.textContent = "Tip: ¡Sigue así! Cada check es una victoria ⭐";
+        } else {
+          showToast("🌙 Está bien", rand(messagesUndo));
+        }
+
+        // Si se completó todo, intenta registrar racha del día
+        updateStreakIfFullDay();
+      });
+    });
+
+    /* ============================================================
+       INIT (al cargar la página)
+       ============================================================ */
+    setDailyQuote();
+    loadNotes();
+    renderStreak();
+    renderAchievements();
+    updateProgressUI();
+  </script>
+</body>
+</html>
